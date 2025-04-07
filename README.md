@@ -1,6 +1,7 @@
 # LLM Debugger
 
-A tool to debug console logs by sending them to a local server and saving them to a file. This package is particularly useful for debugging LLM (Large Language Model) applications and other JavaScript applications where you need to capture and analyze console output.
+Add your javascript console log's into Cursor, Winsurf, Copilot and other LLM's or agents.
+Using this script will create and sync a `llm-debugger-logs.txt` into your project so that it can be used as context for LLM's debugging purposes.
 
 ## Usage
 
