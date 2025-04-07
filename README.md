@@ -12,29 +12,15 @@ First, start the debug server in your terminal:
 npx @alesanchezr/llm-debugger start
 ```
 
-By default, logs will be saved to `llm-debugger-logs.txt` in your current directory. You can specify a custom log file path:
-
-```bash
-npx @alesanchezr/llm-debugger start --log-file /path/to/your/logs.txt
-```
-
 ### 2. Include the Debugger in Your Web Application
 
-Add the following script tag to your HTML file:
-
-```html
-<script src="https://unpkg.com/@alesanchezr/llm-debugger@1.0.1/dist/llm-debugger.js"></script>
-```
-
-### 3. Configuration Options
-
-You can configure the debugger using URL parameters:
+Add the following script tag inside your HTML `<head>` file:
 
 ```html
 <script src="llm-debugger.js?auto_start=true&buffer_size=200&level=ERROR,WARNING,DEBUG"></script>
 ```
 
-Available parameters:
+You can configure the debugger using URL parameters::
 
 - `auto_start`: Set to `true` to automatically send logs every 5 seconds (default: `false`)
 - `buffer_size`: Buffer size in KB (default: `150`)
@@ -70,6 +56,14 @@ Example:
 [2024-04-07T19:50:00.000Z] DEBUG: This is a debug message
 [2024-04-07T19:50:01.000Z] WARNING: This is a warning
 [2024-04-07T19:50:02.000Z] ERROR: This is an error
+```
+
+## Custom Log File Path
+
+By default, logs will be saved to `llm-debugger-logs.txt` in your current directory. You can specify a custom log file path:
+
+```bash
+npx @alesanchezr/llm-debugger start --log-file /path/to/your/logs.txt
 ```
 
 ## Features
