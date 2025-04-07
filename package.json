@@ -1,0 +1,29 @@
+{
+  "name": "@alesanchezr/llm-debugger",
+  "version": "1.0.2",
+  "description": "A tool to debug console logs by sending them to a local server",
+  "main": "dist/llm-debugger.js",
+  "bin": {
+    "@alesanchezr/llm-debugger": "./src/back/server.js"
+  },
+  "scripts": {
+    "build": "rollup -c",
+    "start": "node src/back/server.js",
+    "prepublishOnly": "npm run build"
+  },
+  "files": [
+    "dist/llm-debugger.js",
+    "src/back/server.js"
+  ],
+  "author": "alesanchezr",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "rollup": "^3.29.4",
+    "@rollup/plugin-commonjs": "^25.0.7",
+    "@rollup/plugin-node-resolve": "^15.2.3"
+  }
+}
