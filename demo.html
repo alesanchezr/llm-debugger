@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Debugger Demo</title>
+    <!-- Link to a non-existent CSS file to test the service worker -->
+    <link rel="stylesheet" href="missing.css">
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        button { margin: 5px; padding: 10px; cursor: pointer; }
+        pre { background-color: #f4f4f4; padding: 10px; border: 1px solid #ccc; white-space: pre-wrap; word-wrap: break-word; }
+        .log-output { margin-top: 20px; max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+
+    <h1>LLM Debugger Test Page</h1>
+    <p>Open your browser's developer console and the terminal running the debugger server to see the logs.</p>
+
+    <h2>Console Logs</h2>
+    <button id="logDebug">Log Debug</button>
+    <button id="logWarn">Log Warning</button>
+    <button id="logError">Log Error</button>
+    <button id="logObject">Log Object</button>
+
+    <h2>Fetch Requests</h2>
+    <button id="fetchSuccess">Fetch Success (GET JSONPlaceholder)</button>
+    <button id="fetchNotFound">Fetch Not Found (GET /api/notfound)</button>
+    <button id="fetchPost">Fetch Success (POST JSONPlaceholder)</button>
+
+    <h2>Other</h2>
+    <button id="triggerUnhandled">Trigger Unhandled Error</button>
+
+    <div class="log-output">
+        <h2>Local Log Mirror (via console override):</h2>
+        <pre id="localLogOutput"></pre>
+    </div>
+
+    <!-- Include Debugger Scripts (adjust paths if needed) -->
+    <!-- Ensure these paths are correct relative to demo.html -->
+    <!-- Script tags for individual sniffers removed -->
+    <!-- <script src="src/front/console_sniffer.js"></script> -->
+    <!-- <script src="src/front/fetch_sniffer.js"></script> -->
+    <!-- Configure the main debugger script -->
+    <!-- <script src="src/front/llm-debugger.js?auto_start=true&buffer_size=10&level=DEBUG,WARNING,ERROR&sniffers=console,fetch&endpoint=http://localhost:3006/logs&send_interval=3000"></script> -->
+    <!-- Include the bundled debugger script -->
+    <script src="dist/llm-debugger.bundle.js?auto_start=true&buffer_size=10&level=DEBUG,WARNING,ERROR&sniffers=console,fetch&endpoint=http://localhost:3006/logs&send_interval=3000"></script>
+
+    <!-- Demo logic script -->
+    <script src="demo.js"></script>
+
+</body>
+</html> 

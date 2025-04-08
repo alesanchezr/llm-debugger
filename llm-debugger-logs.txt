@@ -1,0 +1,1 @@
+{"message":"Local log mirror initialized.","level":"DEBUG","timestamp":"2025-04-08T22:55:53.401Z","type":"console","file":null,"line":null}

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Debugger Demo</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Example of a failing stylesheet -->
+    <link rel="stylesheet" href="non-existent.css">
+    <!-- Example of a failing script -->
+    <script src="non-existent.js"></script>
+</head>
+<body>
+    <h1>LLM Debugger Demo</h1>
+    <p>This page demonstrates the LLM Debugger's ability to detect failed resource loads.</p>
+    
+    <div class="demo-section">
+        <h2>Resource Check Demo</h2>
+        <p>The debugger will automatically check the status of all scripts and stylesheets using HEAD requests.</p>
+        <p>You should see logs for:</p>
+        <ul>
+            <li>Failed stylesheet: non-existent.css</li>
+            <li>Failed script: non-existent.js</li>
+        </ul>
+    </div>
+
+    <!-- Initialize LLM Debugger -->
+    <script src="../dist/llm-debugger.bundle.js"></script>
+    <script>
+        // Initialize with resourceCheck sniffer enabled
+        window.llmDebugger.init({
+            sniffers: 'console,fetch,resourceCheck',
+            logLevel: 'info'
+        });
+    </script>
+</body>
+</html> 

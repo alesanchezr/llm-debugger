@@ -1,13 +1,14 @@
 // rollup.config.js
 import resolve from '@rollup/plugin-node-resolve';
-import commonjs from '@rollup/plugin-commonjs';
 
 export default {
   input: 'src/front/llm-debugger.js',
   output: {
-    file: 'dist/llm-debugger.js',
-    format: 'iife', // Immediately Invoked Function Expression for <script> tag
-    name: 'LLMDebugger'
+    file: 'dist/llm-debugger.bundle.js',
+    format: 'iife',
+    name: 'LLMDebuggerBundle'
   },
-  plugins: [resolve(), commonjs()]
+  plugins: [
+    resolve()
+  ]
 };
