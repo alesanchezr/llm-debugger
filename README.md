@@ -17,7 +17,7 @@ Capture frontend console logs, network requests (fetch), and **check the status 
 npx @alesanchezr/llm-debugger start
 ```
 
-2. Add these two script tags to your HTML `<head>`:
+2. Add these two script tags to your HTML `<head>` opening and closing tags:
 
 ```html
 <!-- Configure LLM Debugger -->
@@ -40,7 +40,7 @@ That's it! The debugger will start automatically and begin collecting:
 - Unhandled promise rejections
 
 
-## Configuration
+## Advanced Configuration
 
 Customize the debugger's behavior using these options:
 
@@ -100,7 +100,7 @@ Error: Operation failed
     at app.js:20:5
 ```
 
-## Development
+## Development and contributions
 
 1. Install dependencies:
 ```bash
