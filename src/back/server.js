@@ -13,6 +13,8 @@ import { fileURLToPath } from 'url'; // Needed for __dirname equivalent if requi
 const app = express();
 const port = 3006;
 app.use(express.json());
+// Add text/plain parser
+app.use(express.text());
 
 // Configure CORS to allow specific origin and credentials
 app.use(cors({
@@ -104,29 +106,55 @@ const stopFileTailing = () => {
 // --- End Node.js File Tailing Logic ---
 
 app.post('/logs', (req, res) => {
-  const messages = req.body && Array.isArray(req.body.messages) ? req.body.messages : [];
-  if (messages.length === 0) {
-    console.warn('Received request with no messages or invalid format');
-    return res.sendStatus(200);
-  }
-  messages.forEach((logObject) => {
-    if (typeof logObject === 'object' && logObject !== null) {
-      try {
-        const logEntry = JSON.stringify(logObject) + '\n';
-        logStream.write(logEntry, (err) => {
+  let logEntries = [];
+  
+  // Handle text/plain format
+  if (req.is('text/plain') && typeof req.body === 'string') {
+    // Each line is a separate log entry
+    logEntries = req.body.split('\n').filter(line => line.trim());
+    
+    // Write each line directly to the log file
+    logEntries.forEach(entry => {
+      if (entry.trim()) {
+        logStream.write(entry + '\n', (err) => {
           if (err) console.error('Log write failed:', err);
         });
-      } catch (stringifyError) {
-        console.error('Failed to stringify log object:', stringifyError, logObject);
-        const fallbackEntry = `[${new Date().toISOString()}] ERROR: Failed to process log entry: ${stringifyError.message}\n`;
-        logStream.write(fallbackEntry);
       }
-    } else {
+    });
+  } 
+  // Handle JSON format (for backward compatibility)
+  else if (req.is('application/json')) {
+    const messages = req.body && Array.isArray(req.body.messages) ? req.body.messages : [];
+    if (messages.length === 0) {
+      console.warn('Received request with no messages or invalid format');
+      return res.sendStatus(200);
+    }
+    messages.forEach((logObject) => {
+      if (typeof logObject === 'object' && logObject !== null) {
+        try {
+          const logEntry = JSON.stringify(logObject) + '\n';
+          logStream.write(logEntry, (err) => {
+            if (err) console.error('Log write failed:', err);
+          });
+        } catch (stringifyError) {
+          console.error('Failed to stringify log object:', stringifyError, logObject);
+          const fallbackEntry = `[${new Date().toISOString()}] ERROR: Failed to process log entry: ${stringifyError.message}\n`;
+          logStream.write(fallbackEntry);
+        }
+      } else {
         console.warn('Received non-object item in messages array:', logObject);
         const fallbackEntry = `[${new Date().toISOString()}] WARN: Received invalid log entry type: ${typeof logObject}\n`;
         logStream.write(fallbackEntry);
-    }
-  });
+      }
+    });
+  }
+  // Handle unknown content types
+  else {
+    console.warn('Received request with unsupported Content-Type:', req.get('Content-Type'));
+    const fallbackEntry = `[${new Date().toISOString()}] WARN: Received request with unsupported Content-Type: ${req.get('Content-Type')}\n`;
+    logStream.write(fallbackEntry);
+  }
+  
   res.sendStatus(200);
 });
 

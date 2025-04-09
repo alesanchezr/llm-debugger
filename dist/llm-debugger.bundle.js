@@ -12,6 +12,8 @@
             return;
         }
 
+        const _fetch = window.originalFetch || window.fetch;
+
         // Query DOM safely - ensure DOM is ready before calling
         const resources = document.querySelectorAll('script[src], link[rel="stylesheet"][href]');
         const checks = [];
@@ -28,7 +30,7 @@
             } catch (e) {
                 const logEntry = {
                     timestamp: new Date().toISOString(),
-                    type: 'resourceCheck', subType: 'error',
+                    type: 'resource', subType: 'error',
                     tagName: resource.tagName.toUpperCase(),
                     originalUrl: url, url: null,
                     status: 'Invalid URL', error: e.message
@@ -37,15 +39,23 @@
                 return;
             }
 
-            const checkPromise = fetch(absoluteUrl, { method: 'HEAD', credentials: 'omit' })
+            // Use a custom header to mark this as an internal resource check request
+            const checkPromise = _fetch(absoluteUrl, { 
+                method: 'HEAD', 
+                credentials: 'omit',
+                headers: {
+                    'X-LLM-Debugger-Internal': 'resource-check'
+                }
+            })
                 .then(response => {
-                    if (!response.ok) {
+                    if (response.status >= 400) {
                         const logEntry = {
                             timestamp: new Date().toISOString(),
-                            type: 'resourceCheck', subType: 'failed',
+                            type: 'resource', subType: 'failed',
                             tagName: resource.tagName.toUpperCase(),
                             url: absoluteUrl,
-                            status: response.status
+                            status: response.status,
+                            statusText: response.statusText
                         };
                         logCallbackFn(logEntry);
                     } // Optional: Log success if needed
@@ -53,7 +63,7 @@
                 .catch(error => {
                     const logEntry = {
                         timestamp: new Date().toISOString(),
-                        type: 'resourceCheck', subType: 'error',
+                        type: 'resource', subType: 'error',
                         tagName: resource.tagName.toUpperCase(),
                         url: absoluteUrl,
                         status: 'Network/CORS Error',
@@ -93,17 +103,29 @@
     // Main debugger logic wrapped in an IIFE to avoid polluting global scope unnecessarily
     (function () {
         // --- Configuration Parsing ---
-        const scriptTag = document.currentScript || document.querySelector('script[src*="llm-debugger.js"]');
-        const urlParams = new URLSearchParams(scriptTag.src.split('?')[1] || '');
-        const autoStart = urlParams.get('auto_start') !== 'false'; // Default true
-        const bufferSize = parseInt(urlParams.get('buffer_size') || '150', 10) * 1024; // Default 150KB
-        const endpoint = urlParams.get('endpoint') || 'http://localhost:3006/logs';
-        const levelParam = (urlParams.get('level') || 'ERROR,WARNING,DEBUG').toUpperCase().split(',');
-        const sniffersParam = (urlParams.get('sniffers') || 'console,fetch,resourceCheck').toLowerCase().split(',');
-        const sendInterval = parseInt(urlParams.get('send_interval') || '5000', 10); // Default 5 seconds
+        const config = window.LLM_DEBUGGER_CONFIG || {};
+        
+        // Default configuration
+        const defaultConfig = {
+            autoStart: true,
+            bufferSize: 150 * 1024, // 150KB
+            endpoint: 'http://localhost:3006/logs',
+            level: ['ERROR', 'WARNING', 'DEBUG'],
+            sniffers: ['console', 'fetch', 'resourceCheck'],
+            sendInterval: 5000 // 5 seconds
+        };
 
-        const enabledLevels = new Set(levelParam.filter(level => ['DEBUG', 'WARNING', 'ERROR'].includes(level)));
-        const enabledSniffers = new Set(sniffersParam);
+        // Merge config with defaults
+        const finalConfig = {
+            ...defaultConfig,
+            ...config,
+            // Ensure arrays are properly handled
+            level: Array.isArray(config.level) ? config.level : (config.level || '').toUpperCase().split(',').filter(Boolean),
+            sniffers: Array.isArray(config.sniffers) ? config.sniffers : (config.sniffers || '').toLowerCase().split(',').filter(Boolean)
+        };
+
+        const enabledLevels = new Set(finalConfig.level.filter(level => ['DEBUG', 'WARNING', 'ERROR'].includes(level)));
+        const enabledSniffers = new Set(finalConfig.sniffers);
 
         // --- State ---
         let logBuffer = [];
@@ -207,6 +229,18 @@
             async function logAndFetch(...args) {
                 if (!isActive) return originalFetch(...args);
                 const [urlOrRequest, options] = args;
+                
+                // Skip internal resource check requests
+                const isInternalRequest = 
+                    (options?.headers && typeof options.headers === 'object' && 
+                     options.headers['X-LLM-Debugger-Internal'] === 'resource-check') ||
+                    (urlOrRequest?.headers && typeof urlOrRequest.headers === 'object' && 
+                     urlOrRequest.headers.get && urlOrRequest.headers.get('X-LLM-Debugger-Internal') === 'resource-check');
+                
+                if (isInternalRequest) {
+                    return originalFetch(...args);
+                }
+                
                 const url = (typeof urlOrRequest === 'string') ? urlOrRequest : urlOrRequest.url;
                 const method = options?.method || (typeof urlOrRequest === 'object' ? urlOrRequest.method : 'GET') || 'GET';
                 const requestBody = options?.body || (typeof urlOrRequest === 'object' ? urlOrRequest.body : null);
@@ -263,24 +297,115 @@
         }
         // === End Embedded Fetch Sniffer Code ===
 
+        // --- Global Error Handler ---
+        function setupGlobalErrorHandler(logCallback) {
+            const errorHandler = (event) => {
+                // Handle uncaught errors
+                if (event.error) {
+                    const error = event.error;
+                    const logEntry = {
+                        timestamp: new Date().toISOString(),
+                        type: 'error',
+                        message: error.message,
+                        stack: error.stack,
+                        file: event.filename,
+                        line: event.lineno,
+                        column: event.colno
+                    };
+                    logCallback(logEntry);
+                }
+            };
+
+            // Handle unhandled promise rejections
+            const rejectionHandler = (event) => {
+                const error = event.reason;
+                const logEntry = {
+                    timestamp: new Date().toISOString(),
+                    type: 'error',
+                    subType: 'promise_rejection',
+                    message: error instanceof Error ? error.message : String(error),
+                    stack: error instanceof Error ? error.stack : null
+                };
+                logCallback(logEntry);
+            };
+
+            window.addEventListener('error', errorHandler);
+            window.addEventListener('unhandledrejection', rejectionHandler);
+            
+            return { errorHandler, rejectionHandler };
+        }
+
+        function removeGlobalErrorHandler(handlers) {
+            if (handlers) {
+                if (handlers.errorHandler) {
+                    window.removeEventListener('error', handlers.errorHandler);
+                }
+                if (handlers.rejectionHandler) {
+                    window.removeEventListener('unhandledrejection', handlers.rejectionHandler);
+                }
+            }
+        }
+
         // --- Logging & Buffering ---
+        function formatLogEntry(entry) {
+            const timestamp = entry.timestamp || new Date().toISOString();
+            
+            switch(entry.type) {
+                case 'console':
+                    const level = entry.level || 'INFO';
+                    const location = entry.file ? ` in ${entry.file}:${entry.line}` : '';
+                    return `[${timestamp}] CONSOLE ${level}: ${entry.message}${location}`;
+                
+                case 'network':
+                    if (entry.subType === 'fetch_request') {
+                        return `[${timestamp}] NETWORK: ${entry.method} ${entry.url}`;
+                    } else if (entry.subType === 'fetch_response') {
+                        return `[${timestamp}] NETWORK: ${entry.method} ${entry.url} (${entry.responseStatus} ${entry.responseStatusText || ''})`;
+                    } else if (entry.subType === 'fetch_error') {
+                        return `[${timestamp}] NETWORK ERROR: ${entry.method} ${entry.url} - ${entry.error}`;
+                    }
+                    break;
+                
+                case 'resource':
+                    if (entry.subType === 'failed') {
+                        return `[${timestamp}] RESOURCE: Failed to load ${entry.tagName.toLowerCase()} ${entry.url} (${entry.status} ${entry.statusText || ''})`;
+                    } else if (entry.subType === 'error') {
+                        return `[${timestamp}] RESOURCE ERROR: Failed to load ${entry.tagName.toLowerCase()} ${entry.url} - ${entry.error || 'Unknown error'}`;
+                    }
+                    break;
+
+                case 'error':
+                    if (entry.subType === 'promise_rejection') {
+                        const stackTrace = entry.stack ? `\nStack trace:\n${entry.stack}` : '';
+                        return `[${timestamp}] UNHANDLED PROMISE REJECTION: ${entry.message}${stackTrace}`;
+                    } else {
+                        const errorLocation = entry.file ? ` in ${entry.file}:${entry.line}:${entry.column}` : '';
+                        const stackTrace = entry.stack ? `\nStack trace:\n${entry.stack}` : '';
+                        return `[${timestamp}] UNCAUGHT ERROR: ${entry.message}${errorLocation}${stackTrace}`;
+                    }
+            }
+            
+            // Fallback for unknown types
+            return `[${timestamp}] ${entry.type.toUpperCase()}: ${JSON.stringify(entry)}`;
+        }
+
         function addLogEntry(entry) {
             if (!isRunning) return; // Don't collect logs if not running
 
-            const entryString = JSON.stringify(entry);
-            const entrySize = new TextEncoder().encode(entryString).length;
+            const formattedEntry = formatLogEntry(entry);
+            const entrySize = new TextEncoder().encode(formattedEntry).length;
 
-            if (currentBufferSize + entrySize > bufferSize && logBuffer.length > 0) {
+            if (currentBufferSize + entrySize > finalConfig.bufferSize && logBuffer.length > 0) {
                 sendLogsInternal(); // Flush buffer if adding this entry exceeds size
             }
 
             // If a single entry is larger than the buffer, log an error and discard
-            if (entrySize > bufferSize) {
+            if (entrySize > finalConfig.bufferSize) {
                 console.error('[LLMDebugger] Log entry discarded: size exceeds buffer limit.', entry);
                 return;
             }
 
-            logBuffer.push(entry);
+            logBuffer.push(formattedEntry);
             currentBufferSize += entrySize;
         }
 
@@ -288,49 +413,49 @@
         function sendLogsInternal() {
             if (logBuffer.length === 0) return;
 
-            const payload = { messages: logBuffer };
-            const payloadString = JSON.stringify(payload);
+            const payload = logBuffer.join('\n');
             logBuffer = []; // Clear buffer immediately
             currentBufferSize = 0;
 
             // Use sendBeacon if available for robustness on page unload
             if (navigator.sendBeacon) {
                 try {
-                    const success = navigator.sendBeacon(endpoint, new Blob([payloadString], { type: 'application/json' }));
+                    const success = navigator.sendBeacon(finalConfig.endpoint, new Blob([payload], { type: 'text/plain' }));
                     if (!success) {
                         console.error('[LLMDebugger] sendBeacon failed, attempting fetch.');
-                        fallbackFetchSend(payloadString);
+                        fallbackFetchSend(payload);
                     }
                 } catch (e) {
-                    console.error('[LLMDebugger] Error using sendBeacon:', e);
-                    fallbackFetchSend(payloadString);
+                    console.error('[LLMDebugger] sendBeacon error:', e);
+                    fallbackFetchSend(payload);
                 }
             } else {
-                fallbackFetchSend(payloadString);
+                fallbackFetchSend(payload);
             }
         }
 
-        function fallbackFetchSend(payloadString) {
-             fetch(endpoint, {
-                    method: 'POST',
-                    body: payloadString,
-                    headers: { 'Content-Type': 'application/json' },
-                    keepalive: true
-                }).catch(error => {
-                    // Use original console if sniffer was enabled and captured it
-                    const origError = consoleSnifferInstance?.originalMethods?.error || console.error;
-                    origError.call(console, '[LLMDebugger] Failed to send logs:', error);
-                });
+        function fallbackFetchSend(payload) {
+            fetch(finalConfig.endpoint, {
+                method: 'POST',
+                body: payload,
+                headers: {
+                    'Content-Type': 'text/plain'
+                },
+                keepalive: true // Ensure the request completes even if the page is unloading
+            }).catch(error => {
+                console.error('[LLMDebugger] Failed to send logs:', error);
+            });
         }
 
         // --- Control Functions ---
         function startDebugger() {
             if (isRunning) return;
-            const origLog = consoleSnifferInstance?.originalMethods?.log || console.log;
-            origLog.call(console, '[LLMDebugger] Starting...');
             isRunning = true;
 
-            // Initialize Sniffers
+            // Initialize error handler
+            const errorHandlers = setupGlobalErrorHandler(addLogEntry);
+
+            // Start sniffers
             if (enabledSniffers.has('console')) {
                 consoleSnifferInstance = createConsoleSniffer({ enabledLevels }, addLogEntry);
                 consoleSnifferInstance.start();
@@ -339,33 +464,44 @@
                 fetchSnifferInstance = createFetchSniffer({}, addLogEntry);
                 fetchSnifferInstance.start();
             }
-            // Initialize Resource Check
             if (enabledSniffers.has('resourceCheck')) {
-                initResourceCheck(addLogEntry); // Call the imported initializer
+                initResourceCheck(addLogEntry);
             }
 
             // Start interval sending
-            if (sendInterval > 0) {
-                sendIntervalId = setInterval(sendLogsInternal, sendInterval);
+            if (finalConfig.sendInterval > 0) {
+                sendIntervalId = setInterval(sendLogsInternal, finalConfig.sendInterval);
             }
 
-            // Add unload listeners
+            // Store error handlers for cleanup
+            window.LLMDebugger._errorHandlers = errorHandlers;
+            
+            // Add unload listeners to ensure logs are sent when page is closed
             window.addEventListener('visibilitychange', () => {
-               if (document.visibilityState === 'hidden') { sendLogsInternal(); }
+                if (document.visibilityState === 'hidden') { 
+                    sendLogsInternal(); 
+                }
             });
             window.addEventListener('pagehide', sendLogsInternal);
-
-            (consoleSnifferInstance?.originalMethods?.log || console.log).call(console, '[LLMDebugger] Started.');
+            window.addEventListener('beforeunload', sendLogsInternal);
         }
 
         function stopDebugger() {
             if (!isRunning) return;
-            console.log('[LLMDebugger] Stopping...');
+            isRunning = false;
 
-            // Stop Sniffers
+            // Stop sniffers
             consoleSnifferInstance?.stop();
             fetchSnifferInstance?.stop();
-            // No specific stop needed for resourceCheck
+
+            // Remove error handler
+            removeGlobalErrorHandler(window.LLMDebugger._errorHandlers);
+            delete window.LLMDebugger._errorHandlers;
+            
+            // Remove unload listeners
+            window.removeEventListener('visibilitychange', sendLogsInternal);
+            window.removeEventListener('pagehide', sendLogsInternal);
+            window.removeEventListener('beforeunload', sendLogsInternal);
 
             // Stop interval
             if (sendIntervalId) {
@@ -373,15 +509,8 @@
                 sendIntervalId = null;
             }
 
-            // Remove unload listeners
-            // ...
-
-            // Send remaining logs
+            // Send any remaining logs
             sendLogsInternal();
-
-            isRunning = false;
-            const origLog = consoleSnifferInstance?.originalMethods?.log || console.log;
-            origLog.call(console, '[LLMDebugger] Stopped.');
         }
 
         // --- Public API ---
@@ -392,7 +521,7 @@
         };
 
         // --- Auto-Start ---
-        if (autoStart) {
+        if (finalConfig.autoStart) {
             // Use timeout to ensure DOM is ready and script tag is parsed
             setTimeout(startDebugger, 0);
         }

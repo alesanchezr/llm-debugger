@@ -24,14 +24,19 @@
         </ul>
     </div>
 
+    <!-- Configure LLM Debugger -->
+    <script>
+        window.LLM_DEBUGGER_CONFIG = {
+            sniffers: ['console', 'fetch', 'resourceCheck'],
+            logLevel: 'info',
+            autoStart: true,
+            endpoint: 'http://localhost:3006/logs',
+            bufferSize: 150 * 1024, // 150KB
+            sendInterval: 5000 // 5 seconds
+        };
+    </script>
+
     <!-- Initialize LLM Debugger -->
     <script src="../dist/llm-debugger.bundle.js"></script>
-    <script>
-        // Initialize with resourceCheck sniffer enabled
-        window.llmDebugger.init({
-            sniffers: 'console,fetch,resourceCheck',
-            logLevel: 'info'
-        });
-    </script>
 </body>
 </html> 

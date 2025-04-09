@@ -2,102 +2,127 @@
 
 Capture frontend console logs, network requests (fetch), and **check the status of script/stylesheet links** and stream them to a local server. The server saves these logs to a file (`llm-debugger-logs.txt` by default) for easy inclusion as context in LLMs (like Cursor, Copilot, etc.) or for general debugging.
 
-This tool helps bridge the gap between frontend runtime behavior and backend/LLM analysis.
+- **Console Logging**: Capture all console output with file and line numbers
+- **Network Monitoring**: Track fetch requests and responses
+- **Resource Checking**: Automatically detect failed script and stylesheet loads
+- **Error Tracking**: Capture uncaught errors and unhandled promise rejections with stack traces
+- **LLM-Friendly Format**: Logs are saved in a clean, human-readable text format
+- **Zero Configuration**: Works out of the box with sensible defaults
 
-## Quick Usage
+## Quick Usage (2 steps)
 
-### 1. Start the Debug Server
-
-In your project's terminal, run the server using `npx`. This command downloads and runs the server package without needing a local installation.
+1. Run the server that will create and sync the `llm-debugger-logs.txt` file:
 
 ```bash
-# Start the server, logs saved to ./llm-debugger-logs.txt
 npx @alesanchezr/llm-debugger start
-
-# Or specify a custom log file path:
-npx @alesanchezr/llm-debugger start --log-file ./path/to/your-logs.txt
 ```
 
-- The server will start on `http://localhost:3006`.
-- It will print the location of the log file.
-- It will begin tailing the log file to the terminal.
-- Keep this terminal running while you debug your application.
-
-### 2. Include the Debugger Script via CDN
-
-Add the following script tag to your HTML file (ideally within the `<head>` or near the end of `<body>`).
+2. Add these two script tags to your HTML `<head>`:
 
 ```html
-<!-- Replace LATEST_VERSION with the desired version number, e.g., 1.0.0 -->
-<script src="https://cdn.jsdelivr.net/npm/@alesanchezr/llm-debugger@LATEST_VERSION/dist/llm-debugger.bundle.js?auto_start=true&level=DEBUG,WARNING,ERROR&sniffers=console,fetch,resourceCheck"></script>
+<!-- Configure LLM Debugger -->
+<script>
+    window.LLM_DEBUGGER_CONFIG = {
+        sniffers: ['console', 'fetch', 'resourceCheck'],
+        endpoint: 'http://localhost:3006/logs'
+    };
+</script>
+
+<!-- Initialize LLM Debugger -->
+<script src="https://cdn.jsdelivr.net/npm/@alesanchezr/llm-debugger@latest/dist/llm-debugger.bundle.js"></script>
 ```
 
-*(You can also use unpkg: `https://unpkg.com/@alesanchezr/llm-debugger@LATEST_VERSION/dist/llm-debugger.bundle.js`)*
+That's it! The debugger will start automatically and begin collecting:
+- Console logs (log, warn, error)
+- Network requests and responses
+- Failed script and stylesheet loads
+- JavaScript errors with stack traces
+- Unhandled promise rejections
 
-### 3. Configure via URL Parameters
 
-Append query parameters to the script's `src` URL in the HTML tag:
+## Configuration
 
-- `auto_start` (default: `true`): Automatically start logging and sending periodically when the script loads.
-- `buffer_size` (default: `150`): Max buffer size in KB before logs are sent.
-- `level` (default: `ERROR,WARNING,DEBUG`): Comma-separated console log levels to capture.
-- `sniffers` (default: `console,fetch,resourceCheck`): Comma-separated list of sniffers to enable (`console`, `fetch`, `resourceCheck`).
-- `endpoint` (default: `http://localhost:3006/logs`): The URL of the local debug server endpoint.
-- `send_interval` (default: `5000`): Interval in milliseconds to send logs if `auto_start` is true.
+Customize the debugger's behavior using these options:
 
-Example:
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `sniffers` | Array/String | `['console', 'fetch', 'resourceCheck']` | What to monitor |
+| `logLevel` | String | `'info'` | Minimum log level to capture |
+| `autoStart` | Boolean | `true` | Start automatically |
+| `endpoint` | String | `'http://localhost:3006/logs'` | Where to send logs |
+| `bufferSize` | Number | `150 * 1024` | Max log buffer size (150KB) |
+| `sendInterval` | Number | `5000` | How often to send logs (ms) |
 
+## Examples
+
+### Basic Usage
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@alesanchezr/llm-debugger@latest/dist/llm-debugger.bundle.js?buffer_size=50&level=ERROR&sniffers=console,resourceCheck&send_interval=10000"></script>
+<script>
+    window.LLM_DEBUGGER_CONFIG = {
+        sniffers: ['console', 'fetch']
+    };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@alesanchezr/llm-debugger@latest/dist/llm-debugger.bundle.js"></script>
 ```
 
-### 4. Use Your Application
-
-As you use your application:
-- Console logs, fetch requests, and failed script/stylesheet loads matching the configuration will be captured.
-- Shortly after load, `HEAD` requests will check script/stylesheet links, logging any failures (4xx, 5xx, Network/CORS errors).
-- Logs will be sent to the local server and appear in the terminal running the server and in the specified log file.
-
-### 5. Manual Control
-
-You can manually control the debugger via the global `window.LLMDebugger` object (especially if `auto_start=false`):
-
-```javascript
-// Start capturing and sending logs
-window.LLMDebugger.start();
-
-// Manually send any logs currently in the buffer
-window.LLMDebugger.flush();
-
-// Stop capturing and sending logs
-window.LLMDebugger.stop();
+### Advanced Configuration
+```html
+<script>
+    window.LLM_DEBUGGER_CONFIG = {
+        sniffers: ['console', 'resourceCheck'],
+        logLevel: 'error',
+        endpoint: 'https://your-log-server.com/logs',
+        bufferSize: 300 * 1024,
+        sendInterval: 10000
+    };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@alesanchezr/llm-debugger@latest/dist/llm-debugger.bundle.js"></script>
 ```
 
 ## Log Format
 
-Logs are saved to the file as **newline-delimited JSON objects**. Each object represents a single log event.
+Logs are saved in a clean, human-readable text format:
 
-Example log file content:
-
-```json
-{"message":"This is a debug message.","level":"DEBUG","timestamp":"2024-05-17T10:00:01.123Z","type":"console","file":"/app.js","line":45}
-{"timestamp":"2024-05-17T10:00:05.456Z","type":"network","subType":"fetch_request","method":"GET","url":"https://api.example.com/data","requestBody":null}
-{"timestamp":"2024-05-17T10:00:05.789Z","type":"network","subType":"fetch_response","method":"GET","url":"https://api.example.com/data","responseStatus":200,"responseBody":{"status":"ok"}}
-{"timestamp":"2024-05-17T10:00:00.600Z","type":"resourceCheck","subType":"failed","tagName":"LINK","url":"https://your-app.com/assets/missing.css","status":404}
-{"timestamp":"2024-05-17T10:00:00.605Z","type":"resourceCheck","subType":"error","tagName":"SCRIPT","url":"https://cors-blocked.com/script.js","status":"Network/CORS Error","error":"Failed to fetch"}
+```
+[2024-03-14T12:34:56.789Z] CONSOLE DEBUG: This is a debug message in app.js:42
+[2024-03-14T12:34:57.123Z] NETWORK: GET https://api.example.com/data (200 OK)
+[2024-03-14T12:34:58.456Z] RESOURCE: Failed to load script https://example.com/missing.js (404 Not Found)
+[2024-03-14T12:34:59.789Z] UNCAUGHT ERROR: Cannot read property 'x' of undefined in app.js:15:10
+Stack trace:
+TypeError: Cannot read property 'x' of undefined
+    at foo (app.js:15:10)
+    at bar (app.js:10:5)
+    at app.js:5:3
+[2024-03-14T12:35:00.123Z] UNHANDLED PROMISE REJECTION: Promise was rejected
+Stack trace:
+Error: Operation failed
+    at asyncFunction (app.js:25:10)
+    at app.js:20:5
 ```
 
-## Features
+## Development
 
-- **Console Interception:** Captures `console.log`, `console.warn`, `console.error` with timestamps, levels, messages, and source file/line numbers (best effort).
-- **Fetch Interception:** Logs outgoing `fetch` requests and their corresponding responses (status, body snippets based on content type).
-- **Resource Link Checking:** Performs `HEAD` requests on `<script src="...">` and `<link rel="stylesheet" href="...">` URLs shortly after load to check their HTTP status (logs 4xx/5xx errors or network/CORS failures).
-- **Local Log Server:** A simple Node.js server (run via `npx`) receives logs from the frontend.
-- **File Logging:** Saves received logs as newline-delimited JSON objects to a local file.
-- **Live Log Tailing:** The server automatically tails the log file to the console it's running in (cross-platform).
-- **Configurable:** Control log levels, buffer size, enabled sniffers, send interval, and server endpoint via URL parameters in the script tag.
-- **Buffering:** Logs are buffered on the frontend and sent periodically or when the buffer fills.
-- **CORS Handling:** Server is configured to handle requests from different frontend origins.
+1. Install dependencies:
+```bash
+npm install
+```
+
+2. Start the development server:
+```bash
+npm run dev
+```
+
+3. Build for production:
+```bash
+npm run build
+```
+
+## Demo
+
+Try the demo in the `demo` directory:
+1. Build the debugger: `npm run build`
+2. Serve the demo directory
+3. Open the browser console to see the debugger in action
 
 ## License
 

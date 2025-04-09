@@ -9,6 +9,8 @@ async function performResourceCheck() {
         return;
     }
 
+    const _fetch = window.originalFetch || window.fetch;
+
     // Query DOM safely - ensure DOM is ready before calling
     const resources = document.querySelectorAll('script[src], link[rel="stylesheet"][href]');
     const checks = [];
@@ -25,7 +27,7 @@ async function performResourceCheck() {
         } catch (e) {
             const logEntry = {
                 timestamp: new Date().toISOString(),
-                type: 'resourceCheck', subType: 'error',
+                type: 'resource', subType: 'error',
                 tagName: resource.tagName.toUpperCase(),
                 originalUrl: url, url: null,
                 status: 'Invalid URL', error: e.message
@@ -34,15 +36,23 @@ async function performResourceCheck() {
             return;
         }
 
-        const checkPromise = fetch(absoluteUrl, { method: 'HEAD', credentials: 'omit' })
+        // Use a custom header to mark this as an internal resource check request
+        const checkPromise = _fetch(absoluteUrl, { 
+            method: 'HEAD', 
+            credentials: 'omit',
+            headers: {
+                'X-LLM-Debugger-Internal': 'resource-check'
+            }
+        })
             .then(response => {
-                if (!response.ok) {
+                if (response.status >= 400) {
                     const logEntry = {
                         timestamp: new Date().toISOString(),
-                        type: 'resourceCheck', subType: 'failed',
+                        type: 'resource', subType: 'failed',
                         tagName: resource.tagName.toUpperCase(),
                         url: absoluteUrl,
-                        status: response.status
+                        status: response.status,
+                        statusText: response.statusText
                     };
                     logCallbackFn(logEntry);
                 } // Optional: Log success if needed
@@ -50,7 +60,7 @@ async function performResourceCheck() {
             .catch(error => {
                 const logEntry = {
                     timestamp: new Date().toISOString(),
-                    type: 'resourceCheck', subType: 'error',
+                    type: 'resource', subType: 'error',
                     tagName: resource.tagName.toUpperCase(),
                     url: absoluteUrl,
                     status: 'Network/CORS Error',

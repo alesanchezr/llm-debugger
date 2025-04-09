@@ -12,6 +12,16 @@
         pre { background-color: #f4f4f4; padding: 10px; border: 1px solid #ccc; white-space: pre-wrap; word-wrap: break-word; }
         .log-output { margin-top: 20px; max-height: 300px; overflow-y: auto; }
     </style>
+    <script>
+        window.LLM_DEBUGGER_CONFIG = {
+            sniffers: ['console', 'fetch', 'resourceCheck'],
+            endpoint: 'http://localhost:3006/logs'
+        };
+    </script>
+
+    <!-- Initialize LLM Debugger -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/@alesanchezr/llm-debugger@latest/dist/llm-debugger.bundle.js"></script> -->
+    <script src="dist/llm-debugger.bundle.js"></script>
 </head>
 <body>
 
@@ -29,8 +39,10 @@
     <button id="fetchNotFound">Fetch Not Found (GET /api/notfound)</button>
     <button id="fetchPost">Fetch Success (POST JSONPlaceholder)</button>
 
-    <h2>Other</h2>
+    <h2>Errors & Exceptions</h2>
     <button id="triggerUnhandled">Trigger Unhandled Error</button>
+    <button id="triggerStackTrace">Trigger Deep Stack Trace Error</button>
+    <button id="triggerPromiseRejection">Trigger Unhandled Promise Rejection</button>
 
     <div class="log-output">
         <h2>Local Log Mirror (via console override):</h2>
@@ -45,7 +57,6 @@
     <!-- Configure the main debugger script -->
     <!-- <script src="src/front/llm-debugger.js?auto_start=true&buffer_size=10&level=DEBUG,WARNING,ERROR&sniffers=console,fetch&endpoint=http://localhost:3006/logs&send_interval=3000"></script> -->
     <!-- Include the bundled debugger script -->
-    <script src="dist/llm-debugger.bundle.js?auto_start=true&buffer_size=10&level=DEBUG,WARNING,ERROR&sniffers=console,fetch&endpoint=http://localhost:3006/logs&send_interval=3000"></script>
 
     <!-- Demo logic script -->
     <script src="demo.js"></script>

@@ -1,1 +1,26 @@
-{"message":"Local log mirror initialized.","level":"DEBUG","timestamp":"2025-04-08T22:55:53.401Z","type":"console","file":null,"line":null}
+[2025-04-09T14:35:31.253Z] NETWORK: HEAD http://localhost:8000/missing.css
+[2025-04-09T14:35:31.255Z] NETWORK: HEAD http://localhost:8000/dist/llm-debugger.bundle.js
+[2025-04-09T14:35:31.255Z] NETWORK: HEAD http://localhost:8000/demo.js
+[2025-04-09T14:35:31.262Z] NETWORK: HEAD http://localhost:8000/demo.js (200 )
+[2025-04-09T14:35:31.263Z] NETWORK: HEAD http://localhost:8000/missing.css (404 )
+[2025-04-09T14:35:31.263Z] RESOURCECHECK: {"timestamp":"2025-04-09T14:35:31.263Z","type":"resourceCheck","subType":"failed","tagName":"LINK","url":"http://localhost:8000/missing.css","status":404,"statusText":"File not found"}
+[2025-04-09T14:35:31.263Z] NETWORK: HEAD http://localhost:8000/dist/llm-debugger.bundle.js (200 )
+[2025-04-09T14:35:55.088Z] NETWORK: GET /api/notfound
+[2025-04-09T14:35:55.097Z] NETWORK: GET /api/notfound (404 )
+[2025-04-09T14:39:35.861Z] NETWORK: HEAD http://localhost:8000/missing.css
+[2025-04-09T14:39:35.862Z] NETWORK: HEAD http://localhost:8000/dist/llm-debugger.bundle.js
+[2025-04-09T14:39:35.863Z] NETWORK: HEAD http://localhost:8000/demo.js
+[2025-04-09T14:39:35.868Z] NETWORK: HEAD http://localhost:8000/missing.css (404 )
+[2025-04-09T14:39:35.868Z] RESOURCECHECK: {"timestamp":"2025-04-09T14:39:35.868Z","type":"resourceCheck","subType":"failed","tagName":"LINK","url":"http://localhost:8000/missing.css","status":404,"statusText":"File not found"}
+[2025-04-09T14:39:35.868Z] NETWORK: HEAD http://localhost:8000/dist/llm-debugger.bundle.js (200 )
+[2025-04-09T14:39:35.869Z] NETWORK: HEAD http://localhost:8000/demo.js (200 )
+[2025-04-09T14:46:51.037Z] RESOURCE: Failed to load link http://localhost:8000/missing.css (404 File not found)
+[2025-04-09T14:48:09.962Z] UNCAUGHT ERROR: undefinedVar.nonExistentMethod is not a function in http://localhost:8000/demo.js:94:26
+Stack trace:
+TypeError: undefinedVar.nonExistentMethod is not a function
+    at http://localhost:8000/demo.js:94:26
+[2025-04-09T14:50:27.843Z] RESOURCE: Failed to load link http://localhost:8000/missing.css (404 File not found)
+[2025-04-09T14:50:29.916Z] UNHANDLED PROMISE REJECTION: This promise was intentionally rejected
+Stack trace:
+Error: This promise was intentionally rejected
+    at http://localhost:8000/demo.js:136:24

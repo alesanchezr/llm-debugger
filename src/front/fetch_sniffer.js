@@ -68,6 +68,7 @@ export function createFetchSniffer(config, logCallback) {
         if (isActive) return;
         isActive = true;
         window.fetch = logAndFetch;
+        window.originalFetch = originalFetch;
     }
 
     function stop() {

@@ -95,6 +95,50 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 50);
     });
 
+    // --- Advanced Error Testing Functions ---
+    
+    // Deep Stack Trace Error
+    document.getElementById('triggerStackTrace')?.addEventListener('click', () => {
+        console.warn('About to trigger a deep stack trace error...');
+        function level1() {
+            level2();
+        }
+        
+        function level2() {
+            level3();
+        }
+        
+        function level3() {
+            level4();
+        }
+        
+        function level4() {
+            level5();
+        }
+        
+        function level5() {
+            // Cause error
+            const a = { deeply: { nested: null } };
+            a.deeply.nested.property = "This will fail";
+        }
+        
+        // Trigger the error after a short delay
+        setTimeout(level1, 50);
+    });
+    
+    // Unhandled Promise Rejection
+    document.getElementById('triggerPromiseRejection')?.addEventListener('click', () => {
+        console.warn('About to trigger an unhandled promise rejection...');
+        
+        // Create a promise that will be rejected
+        new Promise((resolve, reject) => {
+            setTimeout(() => {
+                reject(new Error('This promise was intentionally rejected'));
+            }, 50);
+        });
+        // Intentionally not adding .catch() to leave it unhandled
+    });
+
     // Example of catching unhandled errors/rejections (might be logged by browser or other tools)
     window.addEventListener('error', function(event) {
       console.error('[Unhandled Window Error]', event.message, event.filename, event.lineno, event.colno, event.error);
