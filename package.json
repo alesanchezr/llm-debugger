@@ -1,6 +1,6 @@
 {
   "name": "@alesanchezr/llm-debugger",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A tool to debug console logs by sending them to a local server",
   "type": "module",
   "main": "dist/llm-debugger.js",
