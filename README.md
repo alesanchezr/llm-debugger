@@ -70,7 +70,7 @@ Customize the debugger's behavior using these options:
 <script>
     window.LLM_DEBUGGER_CONFIG = {
         sniffers: ['console', 'resourceCheck'],
-        logLevel: 'error',
+        logLevel: 'error,debug',
         endpoint: 'https://your-log-server.com/logs',
         bufferSize: 300 * 1024,
         sendInterval: 10000
