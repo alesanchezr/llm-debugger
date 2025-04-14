@@ -14,14 +14,14 @@
     </style>
     <script>
         window.LLM_DEBUGGER_CONFIG = {
-            sniffers: ['console', 'fetch', 'resourceCheck'],
+            sniffers: ['console', 'fetch', 'resourceCheck', 'error'],
             endpoint: 'http://localhost:3006/logs'
         };
     </script>
 
     <!-- Initialize LLM Debugger -->
     <!-- <script src="https://cdn.jsdelivr.net/npm/@alesanchezr/llm-debugger@latest/dist/llm-debugger.bundle.js"></script> -->
-    <script src="dist/llm-debugger.bundle.js"></script>
+    <script src="dist/llm-debugger.bundle.js" type="module"></script>
 </head>
 <body>
 
@@ -44,10 +44,6 @@
     <button id="triggerStackTrace">Trigger Deep Stack Trace Error</button>
     <button id="triggerPromiseRejection">Trigger Unhandled Promise Rejection</button>
 
-    <div class="log-output">
-        <h2>Local Log Mirror (via console override):</h2>
-        <pre id="localLogOutput"></pre>
-    </div>
 
     <!-- Include Debugger Scripts (adjust paths if needed) -->
     <!-- Ensure these paths are correct relative to demo.html -->

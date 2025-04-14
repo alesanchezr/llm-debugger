@@ -62,7 +62,7 @@ Customize the debugger's behavior using these options:
         sniffers: ['console', 'fetch']
     };
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@alesanchezr/llm-debugger@latest/dist/llm-debugger.bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@alesanchezr/llm-debugger@latest/dist/llm-debugger.bundle.js" type="module"></script>
 ```
 
 ### Advanced Configuration
@@ -76,7 +76,7 @@ Customize the debugger's behavior using these options:
         sendInterval: 10000
     };
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@alesanchezr/llm-debugger@latest/dist/llm-debugger.bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@alesanchezr/llm-debugger@latest/dist/llm-debugger.bundle.js" type="module"></script>
 ```
 
 ## Log Format

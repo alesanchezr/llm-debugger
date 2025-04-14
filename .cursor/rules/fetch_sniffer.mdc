@@ -1,0 +1,96 @@
+---
+description: 
+globs: fetch_sniffer.mdc
+alwaysApply: false
+---
+ # Rules for fetch_sniffer.js
+
+## Purpose
+
+This module is responsible for intercepting and logging fetch requests and responses, while preserving original functionality and providing insights into network activity.
+
+## Architecture Guidelines
+
+1. **Single Responsibility**: This file should only handle fetch interception and related functionality.
+
+2. **Public API**:
+   ```javascript
+   export function createFetchSniffer(config, logCallback) {
+     // Returns object with start() and stop()
+   }
+   ```
+
+3. **Required Behavior**:
+   - **Request Logging**: Log details of outgoing requests
+   - **Response Logging**: Log details of responses
+   - **Error Capture**: Capture and log network errors
+   - **Original Functionality**: Always preserve original fetch behavior
+
+## Implementation Rules
+
+1. **Internal Request Detection**:
+   ```javascript
+   // CORRECT - Always detect and skip internal requests
+   const isInternalRequest = 
+     (options?.headers && options.headers['X-LLM-Debugger-Internal']);
+   
+   if (isInternalRequest) {
+     return originalFetch(...args);
+   }
+   ```
+
+2. **Response Handling**:
+   - Clone responses before reading them
+   - Handle different content types appropriately
+   - Include status codes and status text
+
+3. **Naming**:
+   - Use consistent log object structure
+   - Use descriptive properties (`method`, `url`, `responseStatus`)
+
+4. **Error Handling**:
+   - All response parsing must be in try/catch blocks
+   - Propagate original errors to callers
+
+5. **Global State**:
+   - Must store `originalFetch` on window for other modules to use
+   - Clean up global state on stop()
+
+## Prohibited
+
+1. **No External Dependencies**: All functionality must be self-contained
+2. **No Use of XMLHttpRequest**: Only intercept fetch, not other request methods
+3. **No Network Calls**: Log data should be passed to the callback, never sent directly
+4. **No DOM Manipulation**: This module should only interact with the fetch API
+
+## Integration Pattern
+
+```javascript
+// Correct usage
+const fetchSniffer = createFetchSniffer({}, logEntry => {
+  // Process log entry
+});
+
+fetchSniffer.start();  // Start intercepting
+fetchSniffer.stop();   // Stop intercepting
+```
+
+## Resource Check Integration
+
+This module must expose the original fetch function for the resource check module:
+
+```javascript
+function start() {
+  if (isActive) return;
+  isActive = true;
+  window.fetch = logAndFetch;
+  window.originalFetch = originalFetch; // Store for resource check module
+}
+
+function stop() {
+  if (!isActive) return;
+  isActive = false;
+  window.fetch = originalFetch;
+  delete window.originalFetch;
+}
+```

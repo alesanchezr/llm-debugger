@@ -1,0 +1,75 @@
+---
+description: 
+globs: console_sniffer.js
+alwaysApply: false
+---
+# Rules for console_sniffer.js
+
+## Purpose
+
+This module is responsible for intercepting and logging console output (`console.log`, `console.warn`, `console.error`), while preserving the original functionality and stack traces.
+
+## Architecture Guidelines
+
+1. **Single Responsibility**: This file should only handle console interception and related functionality.
+
+2. **Public API**:
+   ```javascript
+   export function createConsoleSniffer(config, logCallback) {
+     // Returns object with start(), stop(), and originalMethods
+   }
+   ```
+
+3. **Required Behavior**:
+   - **Original First**: Always call the original console method first to preserve stack traces in the developer console
+   - **Stack Trace Parsing**: Extract file/line information from the stack trace
+   - **Error Handling**: Include robust error handling to prevent interception failures
+
+## Implementation Rules
+
+1. **Call Pattern**:
+   ```javascript
+   // CORRECT
+   function createLogHandler(level) {
+     return function(...args) {
+       // Call original first
+       originalMethod.apply(console, args);
+       // Then handle logging
+       // ...
+     };
+   }
+   ```
+
+2. **Stack Trace Parsing**:
+   - Must handle different browser formats
+   - Should skip frames from the debugger itself
+   - Must include fallbacks when parsing fails
+
+3. **Naming**:
+   - Use consistent log prefix `[LLM-Debugger]`
+   - Use descriptive variable names (`isActive`, `originalMethods`)
+
+4. **Error Handling**:
+   - All stack trace parsing must be in try/catch blocks
+   - Fallback mechanisms must be in place
+
+## Prohibited
+
+1. **No External Dependencies**: All functionality must be self-contained
+2. **No Integration Logic**: The module should not know about other sniffers
+3. **No Network Calls**: Log data should be passed to the callback, never sent directly
+4. **No DOM Manipulation**: This module should only interact with the console
+
+## Integration Pattern
+
+```javascript
+// Correct usage
+const consoleSniffer = createConsoleSniffer({ 
+  enabledLevels: new Set(['DEBUG', 'WARNING', 'ERROR']) 
+}, logEntry => {
+  // Process log entry
+});
+
+consoleSniffer.start();  // Start intercepting
+consoleSniffer.stop();   // Stop intercepting
+``` 

@@ -12,6 +12,18 @@ export function createFetchSniffer(config, logCallback) {
         }
 
         const [urlOrRequest, options] = args;
+        
+        // Skip internal resource check requests
+        const isInternalRequest = 
+            (options?.headers && typeof options.headers === 'object' && 
+             options.headers['X-LLM-Debugger-Internal'] === 'resource-check') ||
+            (urlOrRequest?.headers && typeof urlOrRequest.headers === 'object' && 
+             urlOrRequest.headers.get && urlOrRequest.headers.get('X-LLM-Debugger-Internal') === 'resource-check');
+        
+        if (isInternalRequest) {
+            return originalFetch(...args);
+        }
+        
         const url = (typeof urlOrRequest === 'string') ? urlOrRequest : urlOrRequest.url;
         const method = options?.method || (typeof urlOrRequest === 'object' ? urlOrRequest.method : 'GET') || 'GET';
         const requestBody = options?.body || (typeof urlOrRequest === 'object' ? urlOrRequest.body : null);
@@ -57,7 +69,8 @@ export function createFetchSniffer(config, logCallback) {
         // Log response/completion
         const responseLog = {
             timestamp: new Date().toISOString(), type: 'network', subType: 'fetch_response',
-            method: method.toUpperCase(), url: String(url), responseStatus, responseBody
+            method: method.toUpperCase(), url: String(url), responseStatus, responseBody,
+            responseStatusText: response.statusText
         };
         logCallback(responseLog);
 
@@ -68,13 +81,14 @@ export function createFetchSniffer(config, logCallback) {
         if (isActive) return;
         isActive = true;
         window.fetch = logAndFetch;
-        window.originalFetch = originalFetch;
+        window.originalFetch = originalFetch; // Store for resource check module
     }
 
     function stop() {
         if (!isActive) return;
         isActive = false;
         window.fetch = originalFetch;
+        delete window.originalFetch;
     }
 
     return {

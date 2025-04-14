@@ -1,26 +1,47 @@
-[2025-04-09T14:35:31.253Z] NETWORK: HEAD http://localhost:8000/missing.css
-[2025-04-09T14:35:31.255Z] NETWORK: HEAD http://localhost:8000/dist/llm-debugger.bundle.js
-[2025-04-09T14:35:31.255Z] NETWORK: HEAD http://localhost:8000/demo.js
-[2025-04-09T14:35:31.262Z] NETWORK: HEAD http://localhost:8000/demo.js (200 )
-[2025-04-09T14:35:31.263Z] NETWORK: HEAD http://localhost:8000/missing.css (404 )
-[2025-04-09T14:35:31.263Z] RESOURCECHECK: {"timestamp":"2025-04-09T14:35:31.263Z","type":"resourceCheck","subType":"failed","tagName":"LINK","url":"http://localhost:8000/missing.css","status":404,"statusText":"File not found"}
-[2025-04-09T14:35:31.263Z] NETWORK: HEAD http://localhost:8000/dist/llm-debugger.bundle.js (200 )
-[2025-04-09T14:35:55.088Z] NETWORK: GET /api/notfound
-[2025-04-09T14:35:55.097Z] NETWORK: GET /api/notfound (404 )
-[2025-04-09T14:39:35.861Z] NETWORK: HEAD http://localhost:8000/missing.css
-[2025-04-09T14:39:35.862Z] NETWORK: HEAD http://localhost:8000/dist/llm-debugger.bundle.js
-[2025-04-09T14:39:35.863Z] NETWORK: HEAD http://localhost:8000/demo.js
-[2025-04-09T14:39:35.868Z] NETWORK: HEAD http://localhost:8000/missing.css (404 )
-[2025-04-09T14:39:35.868Z] RESOURCECHECK: {"timestamp":"2025-04-09T14:39:35.868Z","type":"resourceCheck","subType":"failed","tagName":"LINK","url":"http://localhost:8000/missing.css","status":404,"statusText":"File not found"}
-[2025-04-09T14:39:35.868Z] NETWORK: HEAD http://localhost:8000/dist/llm-debugger.bundle.js (200 )
-[2025-04-09T14:39:35.869Z] NETWORK: HEAD http://localhost:8000/demo.js (200 )
-[2025-04-09T14:46:51.037Z] RESOURCE: Failed to load link http://localhost:8000/missing.css (404 File not found)
-[2025-04-09T14:48:09.962Z] UNCAUGHT ERROR: undefinedVar.nonExistentMethod is not a function in http://localhost:8000/demo.js:94:26
-Stack trace:
-TypeError: undefinedVar.nonExistentMethod is not a function
-    at http://localhost:8000/demo.js:94:26
-[2025-04-09T14:50:27.843Z] RESOURCE: Failed to load link http://localhost:8000/missing.css (404 File not found)
-[2025-04-09T14:50:29.916Z] UNHANDLED PROMISE REJECTION: This promise was intentionally rejected
-Stack trace:
-Error: This promise was intentionally rejected
-    at http://localhost:8000/demo.js:136:24
+[2025-04-14T14:42:32.730Z] CONSOLE DEBUG: Console sniffer initialized
+ --- 
+[2025-04-14T14:42:32.750Z] INTERNAL (error): Error sniffer started.
+ --- 
+[2025-04-14T14:42:33.242Z] RESOURCE: Failed to load link http://localhost:8000/missing.css (404 File not found)
+[2025-04-14T14:42:53.132Z] CONSOLE DEBUG: Console sniffer initialized
+ --- 
+[2025-04-14T14:42:53.150Z] INTERNAL (error): Error sniffer started.
+ --- 
+[2025-04-14T14:42:53.645Z] RESOURCE: Failed to load link http://localhost:8000/missing.css (404 File not found)
+[2025-04-14T14:45:17.320Z] CONSOLE DEBUG: Console sniffer initialized
+ --- 
+[2025-04-14T14:45:17.340Z] INTERNAL (error): Error sniffer started.
+ --- 
+[2025-04-14T14:45:17.834Z] RESOURCE: Failed to load link http://localhost:8000/missing.css (404 File not found)
+[2025-04-14T14:46:20.085Z] CONSOLE DEBUG: Console sniffer initialized
+ --- 
+[2025-04-14T14:46:20.106Z] INTERNAL (error): Error sniffer started.
+ --- 
+[2025-04-14T14:46:20.597Z] RESOURCE: Failed to load link http://localhost:8000/missing.css (404 File not found)
+[2025-04-14T14:47:57.724Z] CONSOLE DEBUG: Console sniffer initialized
+ --- 
+[2025-04-14T14:47:57.743Z] INTERNAL (error): Error sniffer started.
+ --- 
+[2025-04-14T14:47:58.236Z] RESOURCE: Failed to load link http://localhost:8000/missing.css (404 File not found)
+[2025-04-14T14:54:27.397Z] CONSOLE DEBUG: Console sniffer initialized
+ --- 
+[2025-04-14T14:54:27.417Z] INTERNAL (error): Error sniffer started.
+ --- 
+[2025-04-14T14:54:27.909Z] RESOURCE: Failed to load link http://localhost:8000/missing.css (404 File not found)
+[2025-04-14T14:55:36.158Z] CONSOLE DEBUG: Console sniffer initialized
+ --- 
+[2025-04-14T14:55:36.178Z] INTERNAL (error): Error sniffer started.
+ --- 
+[2025-04-14T14:55:36.666Z] RESOURCE: Failed to load link http://localhost:8000/missing.css (404 File not found)
+[2025-04-14T14:59:40.055Z] CONSOLE DEBUG: Console sniffer initialized
+ --- 
+[2025-04-14T14:59:40.055Z] CONSOLE DEBUG: [LLM-Debugger] Initializing resource check...
+ --- 
+[2025-04-14T14:59:40.071Z] INTERNAL (error): Error sniffer started.
+ --- 
+[2025-04-14T14:59:40.565Z] RESOURCE: Failed to load link http://localhost:8000/missing.css (404 File not found)
+ --- 
+[2025-04-14T14:59:40.566Z] CONSOLE DEBUG: [LLM-Debugger] Resource check complete (3 resources checked).
+[2025-04-14T14:59:48.265Z] CONSOLE DEBUG: This is a debug message... 123 true
+[2025-04-14T14:59:59.308Z] CONSOLE DEBUG: This is a debug message... 123 true
+[2025-04-14T15:00:14.248Z] CONSOLE WARNING: This is a warning message.

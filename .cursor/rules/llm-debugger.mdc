@@ -1,0 +1,67 @@
+---
+description: 
+globs: llm-debugger.mdc
+alwaysApply: false
+---
+ # Rules for llm-debugger.js
+
+## Architecture Guidelines
+
+1. **Orchestration Only**: This file should only orchestrate functionality provided by the individual sniffers.
+   - **Never** implement sniffer functionality directly in this file
+   - **Always** import and use the specialized modules
+
+2. **Responsibilities**:
+   - Configuration parsing and normalization
+   - Initialization of individual sniffers
+   - Log buffering and transmission
+   - Error handler setup
+   - Lifecycle management (start/stop)
+   - Global API exposure
+
+3. **Prohibited**:
+   - Direct implementation of console overrides
+   - Direct implementation of fetch interception
+   - Direct implementation of resource checking
+   - Duplication of code from sniffers
+
+## Integration Pattern
+
+```javascript
+// CORRECT
+import { createConsoleSniffer } from './console_sniffer.js';
+import { createFetchSniffer } from './fetch_sniffer.js';
+import { initResourceCheck } from './test-scripts-and-styles.js';
+
+// Start sniffers
+if (enabledSniffers.has('console')) {
+    consoleSnifferInstance = createConsoleSniffer(config, logCallback);
+    consoleSnifferInstance.start();
+}
+```
+
+```javascript
+// INCORRECT - NEVER DO THIS
+// Directly implementing sniffer functionality
+function createLogHandler(level) {
+    return function(...args) {
+        // Implementation details that belong in console_sniffer.js
+    };
+}
+```
+
+## Naming Conventions
+
+1. All log messages should use the prefix `[LLM-Debugger]`
+2. Use `finalConfig` for the merged configuration
+3. Use consistent error handling patterns
+
+## Cross-Cutting Concerns
+
+The main file should handle these concerns that cut across all sniffers:
+1. Log formatting
+2. Log transmission
+3. Buffer management
+4. Error handling for unhandled errors
+
+Any functionality that is specific to a particular domain should be implemented in its respective sniffer module.

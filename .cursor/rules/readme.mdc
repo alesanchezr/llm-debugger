@@ -1,5 +1,5 @@
 ---
 description: 
-globs: 
+globs: README.md
 alwaysApply: false
 ---

@@ -3,104 +3,171 @@
 // Helper to parse stack trace - very basic, targets common formats
 function parseStackForLocation(stack) {
     if (!stack) return null;
-
     const lines = stack.split('\\n');
-    // Try to find the first line that doesn't refer to the sniffer itself
-    // This index might need adjustment based on browser/call stack depth
     let relevantLine = null;
-    for (let i = 2; i < lines.length; i++) {
-         if (lines[i] && !lines[i].includes('llm-debugger') && !lines[i].includes('createLogHandler')) {
+    
+    // Skip debugger frames to find the actual caller
+    const skipPatterns = [
+        'llm-debugger.js', 
+        'createLogHandler',
+        'at console.log',
+        'at console.warn',
+        'at console.error'
+    ];
+    
+    // Find the first line that doesn't match any skip patterns
+    for (let i = 1; i < lines.length; i++) {
+        if (!lines[i]) continue;
+        
+        // Skip internal debugger frames
+        let shouldSkip = false;
+        for (const pattern of skipPatterns) {
+            if (lines[i].includes(pattern)) {
+                shouldSkip = true;
+                break;
+            }
+        }
+        
+        if (!shouldSkip) {
             relevantLine = lines[i];
             break;
-         }
-    }
-
-
-    if (!relevantLine) {
-        // Fallback if specific filtering fails, might point to sniffer internals
-        relevantLine = lines[2] || lines[1]; // Often the 3rd line is the caller
-    }
-
-
-    if (!relevantLine) return null;
-
-    // Attempt to extract file and line number using regex for common formats
-    // Format: "at functionName (filePath:line:column)" or "functionName@filePath:line:column"
-    const match = relevantLine.match(/(?:at |@)?(?:.*?[(]?)([^() ]+):(\d+):(\d+)[)]?/);
-
-    if (match && match[1] && match[2]) {
-      // Basic cleanup for file path (remove query strings, etc.)
-      const filePath = match[1].split('?')[0];
-      // Try to get a shorter path relative to the origin
-      let fileName = filePath;
-      try {
-          const url = new URL(filePath);
-          if (window.location && url.origin === window.location.origin) {
-              fileName = url.pathname;
-          }
-      } catch (e) { /* Ignore if not a valid URL or if window not defined (e.g., during build) */ }
-
-      return {
-        file: fileName || match[1], // Use cleaned path or original match
-        line: parseInt(match[2], 10),
-        // column: parseInt(match[3], 10) // Column is available if needed
-      };
+        }
     }
     
-    // Fallback for other potential formats or if regex fails
+    // Fallback to first non-empty line if all were skipped
+    if (!relevantLine) {
+        for (let i = 1; i < lines.length; i++) {
+            if (lines[i] && lines[i].trim()) {
+                relevantLine = lines[i];
+                break;
+            }
+        }
+    }
+    
+    // Last fallback - just use line 1 or 2
+    if (!relevantLine) relevantLine = lines[2] || lines[1];
+    if (!relevantLine) return null;
+    
+    // Try to parse the line
+    const match = relevantLine.match(/(?:at |@)?(?:.*?[(]?)([^() ]+):(\d+):(\d+)[)]?/);
+    if (match && match[1] && match[2]) {
+        const filePath = match[1].split('?')[0];
+        let fileName = filePath;
+        try {
+            const url = new URL(filePath);
+            if (window.location && url.origin === window.location.origin) fileName = url.pathname;
+        } catch (e) { /* Ignore */ }
+        return { 
+            file: fileName || match[1], 
+            line: parseInt(match[2], 10),
+            column: parseInt(match[3], 10) 
+        };
+    }
+    
+    // Alternative format (older browsers or different formats)
     const parts = relevantLine.trim().split(':');
     if (parts.length >= 3) {
         const line = parseInt(parts[parts.length - 2], 10);
+        const column = parseInt(parts[parts.length - 1], 10);
         const file = parts.slice(0, parts.length - 2).join(':').split(' ').pop();
-         if (file && !isNaN(line)) {
-             return { file: file, line: line };
-         }
+        if (file && !isNaN(line)) {
+            return { 
+                file: file, 
+                line: line,
+                column: isNaN(column) ? 0 : column
+            };
+        }
     }
-
-
-    return null; // Could not parse
+    
+    return null;
 }
 
 // Export the main function
 export function createConsoleSniffer(config, logCallback) {
     const { enabledLevels } = config;
-    const logLevels = { DEBUG: 'log', WARNING: 'warn', ERROR: 'error' };
+    const logLevels = { DEBUG: 'log', WARNING: 'warn', ERROR: 'error', INFO: 'log' };
     const originalMethods = { log: console.log, warn: console.warn, error: console.error };
     let isActive = false;
+    originalMethods.log('Logging for enabledLevels:', config);
 
     function createLogHandler(level) {
+        const originalMethod = originalMethods[logLevels[level.toUpperCase()]];
+        // Use original group methods to avoid recursion if console itself is logged
+        const groupMethod = originalMethods.log; // Or decide based on level
+        const groupEndMethod = originalMethods.log; // Doesn't really matter
+        
         return function (...args) {
-             // --- Get stack trace ---
-             let location = null;
-             try {
-               const err = new Error();
-               location = parseStackForLocation(err.stack);
-             } catch (e) {
-                 // Failed to get or parse stack
-             }
-             // --- End stack trace ---
-            
-            const upperLevel = level.toUpperCase();
-            // If not active, just call original method
-            if (!isActive || !enabledLevels.has(upperLevel)) {
-                return originalMethods[logLevels[upperLevel]]?.apply(console, args);
+            // Get stack trace early to determine origin
+            let location = null;
+            try {
+                const error = new Error();
+                location = parseStackForLocation(error.stack);
+            } catch (e) {
+                // Ignore parsing errors here, will be handled later if needed
             }
 
-            // Format message (handle various argument types)
-            const messageParts = args.map(arg => {
-              try {
-                if (arg instanceof Error) return arg.stack || arg.message;
-                if (typeof arg === 'object' && arg !== null) return JSON.stringify(arg);
-                return String(arg);
-              } catch (e) { return `[Unserializable argument: ${e.message}]`; }
-            });
-            const message = messageParts.join(' ');
-            const entry = {
-                message, level: upperLevel, timestamp: new Date().toISOString(), type: 'console',
-                file: location?.file || null, line: location?.line || null
-            };
-            logCallback(entry); // Log first
-            originalMethods[logLevels[upperLevel]]?.apply(console, args); // Then call original
+            // Start a collapsed group showing the origin, if found
+            if (location) {
+                // Use original console.log to start the group to avoid recursion
+                originalMethods.log.call(console, `--- Group Logged From: ${location.file}:${location.line} ---`); 
+                // Using a simple log message instead of groupCollapsed for wider compatibility 
+                // and less potential interference. 
+            }
+            
+            // Always call the original method to preserve stack traces and output
+            originalMethod.apply(console, args);
+
+            // --- Logging logic (remains mostly the same) ---
+            if (!isActive) return;
+            
+            const upperLevel = level.toUpperCase();
+            
+            if (!enabledLevels.has(upperLevel)) return;
+            try {
+                // We already tried getting location, reuse it if possible
+                if (!location) { 
+                    const error = new Error(); // Try again if failed initially?
+                    location = parseStackForLocation(error.stack); 
+                }
+                
+                const messageParts = args.map(arg => {
+                    try {
+                        if (arg instanceof Error) return arg.stack || arg.message;
+                        if (typeof arg === 'object' && arg !== null) return JSON.stringify(arg);
+                        return String(arg);
+                    } catch (e) { return `[Unserializable argument: ${e.message}]`; }
+                });
+                
+                const message = messageParts.join(' ');
+                const entry = {
+                    message, 
+                    level: upperLevel, 
+                    timestamp: new Date().toISOString(), 
+                    type: 'console',
+                    file: location?.file || null, 
+                    line: location?.line || null
+                };
+                
+                logCallback(entry);
+            } catch (err) { 
+                // Fallback logging (as before)
+                const messageParts = args.map(arg => {
+                    try {
+                        if (arg instanceof Error) return arg.stack || arg.message;
+                        if (typeof arg === 'object' && arg !== null) return JSON.stringify(arg);
+                        return String(arg);
+                    } catch (e) { return `[Unserializable argument: ${e.message}]`; }
+                });
+                const message = messageParts.join(' ');
+                const entry = {
+                    message, 
+                    level: upperLevel, 
+                    timestamp: new Date().toISOString(), 
+                    type: 'console'
+                };
+                logCallback(entry);
+                originalMethods.error.call(console, 'Error in LLM Debugger while logging console message:', err);
+            }
         };
     }
 

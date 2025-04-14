@@ -1,0 +1,98 @@
+---
+description: 
+globs: test-scripts-and-styles.mdc
+alwaysApply: false
+---
+ # Rules for test-scripts-and-styles.js
+
+## Purpose
+
+This module is responsible for checking the status of scripts and stylesheets in the DOM, identifying resources that fail to load, and reporting their status.
+
+## Architecture Guidelines
+
+1. **Single Responsibility**: This file should only handle resource status checking.
+
+2. **Public API**:
+   ```javascript
+   export function initResourceCheck(logCallback) {
+     // Initializes resource checking and sets up callbacks
+   }
+   ```
+
+3. **Required Behavior**:
+   - **DOM Querying**: Find all script and link elements with src/href attributes
+   - **Status Checking**: Perform HEAD requests to verify resource availability
+   - **Error Reporting**: Report 4xx/5xx status codes and network errors
+   - **Initialization**: Handle both immediate and deferred initialization
+
+## Implementation Rules
+
+1. **Fetch Usage**:
+   ```javascript
+   // CORRECT - Always use the original fetch with internal header
+   const _fetch = window.originalFetch || window.fetch;
+   
+   const checkPromise = _fetch(absoluteUrl, { 
+     method: 'HEAD', 
+     credentials: 'omit',
+     headers: {
+       'X-LLM-Debugger-Internal': 'resource-check'
+     }
+   });
+   ```
+
+2. **URL Handling**:
+   - Convert relative URLs to absolute
+   - Handle URL parsing errors
+   - Use document.baseURI for resolution
+
+3. **Naming**:
+   - Use consistent log object structure
+   - Use descriptive properties (`tagName`, `url`, `status`)
+   - Use `[LLM-Debugger]` prefix for console messages
+
+4. **Error Handling**:
+   - URL parsing must be in try/catch blocks
+   - All network requests must handle errors
+   - Use Promise.allSettled for request batches
+
+## Prohibited
+
+1. **No External Dependencies**: All functionality must be self-contained
+2. **No Recursive Checking**: Only check resources in the initial DOM
+3. **No Network Calls**: Log data should be passed to the callback, never sent directly
+4. **No Browser Sniffing**: Solution should work in all modern browsers
+
+## Integration Pattern
+
+```javascript
+// Correct usage
+initResourceCheck(logEntry => {
+  // Process log entry
+});
+```
+
+## Fetch Sniffer Integration
+
+This module must use the original fetch exposed by the fetch sniffer to avoid recursive logging:
+
+```javascript
+// Correct
+const _fetch = window.originalFetch || window.fetch;
+
+// Incorrect - would cause recursive logging
+const _fetch = window.fetch;
+```
+
+## Timing
+
+Resource checks should be slightly delayed after DOM load to ensure all resources are discovered:
+
+```javascript
+// Correct
+setTimeout(performResourceCheck, 500);
+
+// Incorrect - might miss late-loading resources
+performResourceCheck();
+```

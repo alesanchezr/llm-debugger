@@ -5,10 +5,11 @@ let logCallbackFn = null;
 
 async function performResourceCheck() {
     if (!logCallbackFn) {
-        console.warn('[LLMDebugger-ResourceCheck] Log callback not initialized.');
+        console.warn('[LLM-Debugger] Resource check - Log callback not initialized.');
         return;
     }
 
+    // Use the original fetch stored by the fetch sniffer or fall back to window.fetch
     const _fetch = window.originalFetch || window.fetch;
 
     // Query DOM safely - ensure DOM is ready before calling
@@ -74,13 +75,13 @@ async function performResourceCheck() {
     // Wait for all checks to complete
     await Promise.allSettled(checks);
 
-    // Log completion (using original console if possible, might need reference from main module)
-    console.log(`[LLMDebugger] Resource check complete (${count} resources checked).`);
+    // Log completion
+    console.log(`[LLM-Debugger] Resource check complete (${count} resources checked).`);
 }
 
 // Export an initialization function
 export function initResourceCheck(logCallback) {
-    console.log('[LLMDebugger] Initializing resource check...');
+    console.log('[LLM-Debugger] Initializing resource check...');
     if (typeof document === 'undefined' || document.readyState === 'loading') {
         // Wait for DOMContentLoaded if the document is still loading
         document.addEventListener('DOMContentLoaded', () => {

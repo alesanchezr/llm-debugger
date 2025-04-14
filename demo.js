@@ -1,39 +1,9 @@
 // demo.js
 document.addEventListener('DOMContentLoaded', () => {
-    const logOutput = document.getElementById('localLogOutput');
-
-    // --- Mirror logs locally (optional, demonstrates console override) ---
-    // Store original methods before they might be overridden by console_sniffer
-    const originalConsole = {
-        log: console.log,
-        warn: console.warn,
-        error: console.error
-    };
-    const logToPage = (level, args) => {
-        const message = args.map(arg => {
-            try {
-                if (arg instanceof Error) return arg.stack || arg.toString();
-                if (typeof arg === 'object' && arg !== null) return JSON.stringify(arg, null, 2);
-                return String(arg);
-            } catch { return '[Unserializable]'; }
-        }).join(' ');
-        const line = document.createElement('div');
-        line.textContent = `[${level.toUpperCase()}] ${new Date().toLocaleTimeString()}: ${message}`;
-        logOutput.appendChild(line);
-        logOutput.scrollTop = logOutput.scrollHeight; // Auto-scroll
-    };
-    // Override console methods AFTER debugger has potentially done so
-    // We rely on the debugger calling the *original* method it stored
-    setTimeout(() => { // Use timeout to ensure debugger scripts have run
-        console.log = (...args) => { logToPage('debug', args); originalConsole.log.apply(console, args); };
-        console.warn = (...args) => { logToPage('warn', args); originalConsole.warn.apply(console, args); };
-        console.error = (...args) => { logToPage('error', args); originalConsole.error.apply(console, args); };
-        console.log("Local log mirror initialized.");
-    }, 100); // Small delay
 
     // --- Button Listeners ---
     document.getElementById('logDebug')?.addEventListener('click', () => {
-        console.log('This is a debug message.', 123, true);
+        console.log('This is a debug message...', 123, true);
     });
 
     document.getElementById('logWarn')?.addEventListener('click', () => {
